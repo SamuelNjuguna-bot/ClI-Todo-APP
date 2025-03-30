@@ -55,55 +55,80 @@ app.command("read")
 .option("-i, --id <value>", "id of todo list")
 .action(async(options)=>{
     const idno = options.id
-
+  try{
     if(idno){
-       const foundTodo = await prisma.todos.findFirst({
-            where:{
-               id:idno
-            }
-        })
-       const table = new Table({
-        
-        head:['ID', "Title", "Description"]
-
-        })
-        table.push([foundTodo.id, foundTodo.TodoTittle, foundTodo.TodoDescription])
-        console.log(table.toString())
-    }
-    else{
-        const readContent = await prisma.todos.findMany();
+        const foundTodo = await prisma.todos.findFirst({
+             where:{
+                id:idno
+             }
+         })
         const table = new Table({
-            head: ["id", "Tittle", "Description"]
-        })
-    
-        readContent.forEach((todo)=>{
-            table.push([todo.id, todo.TodoTittle, todo.TodoDescription])
-        })
-        console.log(table.toString())
-    }
+         
+         head:['ID', "Title", "Description"]
+ 
+         })
+         table.push([foundTodo.id, foundTodo.TodoTittle, foundTodo.TodoDescription])
+         console.log(table.toString())
+     }
+     else{
+         const readContent = await prisma.todos.findMany();
+         const table = new Table({
+             head: ["id", "Tittle", "Description"]
+         })
+     
+         readContent.forEach((todo)=>{
+             table.push([todo.id, todo.TodoTittle, todo.TodoDescription])
+         })
+         console.log(table.toString())
+     }
+ 
+  } catch(e){
+    console.log(chalk.bgRed("There was an error"))
+  }
 
    
 })
 
 
 
-
- app.command("update")
- .description("Updates an item in the todo list")
- .action(async()=>{
- 
-const title = await prompts(
-    {
-        type: 'text',
-        name : 'update',
-        message:'Enter the todo title you want to update',
-    }
-);
-console.log(title)
-
+app.command("update")
+.description("Updates a todo")
+.requiredOption("-i, --id <value>","Id of the todo")
+.option("-t, --title <value>", " The title of the todo")
+.option("-d, --description <value>", "The description of the todo")
+.action(async(options)=>{
+ const id = options.id
+ const newTitle = options.title
+ const newdescription = options.description
+ try{
+    const todoItem = await prisma.todos.update(
+        {
+            where:{id},
+    
+            data : {
+                TodoTittle: newTitle && newTitle,
+                TodoDescription: newdescription && newdescription
+    
+            }
+        }
+    
+    )
+    console.log(chalk.bgGreen("The update was a succesful one"))
+    const table = new Table({
+        
+        head:['ID', "Title", "Description"]
+     
+        })
+        table.push([todoItem.id, todoItem.TodoTittle, todoItem.TodoDescription])
+        console.log(table.toString())
+ }
+ catch(e){
+    console.log(chalk.bgRed("There was an error"))
+ }
 
 
 
  })
 
- app.parse()
+
+app.parse()

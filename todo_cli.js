@@ -40,10 +40,10 @@ app.command("create todo")
    });
   const table = new Table(
     {
-        head: ["Title", "Description"]
+        head: ["Title", "Description", "status"]
     }
   );
-  table.push([Todo.tittle, Todo.description])
+  table.push([Todo.tittle, Todo.description, Todo.Status])
    console.log(chalk.bgGreen("succesfully inserted a todo list"))
    console.log(table.toString())
  })
@@ -73,11 +73,11 @@ app.command("read")
      else{
          const readContent = await prisma.todos.findMany();
          const table = new Table({
-             head: ["id", "Tittle", "Description"]
+             head: ["id", "Tittle", "Description", "Status"]
          })
      
          readContent.forEach((todo)=>{
-             table.push([todo.id, todo.TodoTittle, todo.TodoDescription])
+             table.push([todo.id, todo.TodoTittle, todo.TodoDescription, todo.Status])
          })
          console.log(table.toString())
      }
@@ -96,10 +96,12 @@ app.command("update")
 .requiredOption("-i, --id <value>","Id of the todo")
 .option("-t, --title <value>", " The title of the todo")
 .option("-d, --description <value>", "The description of the todo")
+.option("-s, --status <value>", "This changes the status of a todo")
 .action(async(options)=>{
  const id = options.id
  const newTitle = options.title
  const newdescription = options.description
+ const status = options.status
  try{
     const todoItem = await prisma.todos.update(
         {
@@ -107,7 +109,8 @@ app.command("update")
     
             data : {
                 TodoTittle: newTitle && newTitle,
-                TodoDescription: newdescription && newdescription
+                TodoDescription: newdescription && newdescription,
+                Status: status&&status
     
             }
         }
@@ -116,10 +119,10 @@ app.command("update")
     console.log(chalk.bgGreen("The update was a succesful one"))
     const table = new Table({
         
-        head:['ID', "Title", "Description"]
+        head:['ID', "Title", "Description", "status"]
      
         })
-        table.push([todoItem.id, todoItem.TodoTittle, todoItem.TodoDescription])
+        table.push([todoItem.id, todoItem.TodoTittle, todoItem.TodoDescription, todoItem.Status])
         console.log(table.toString())
  }
  catch(e){
@@ -131,4 +134,92 @@ app.command("update")
  })
 
 
-app.parse()
+ app.command("status")
+ .description(" This command changes the status of a particular todo")
+ .action(async()=>{
+   const status = await prompts([{
+    type:"text",
+    name: "todoID",
+    message: "Enter Your Todo Id"
+   },
+    {
+        type:"select",
+        name: "status",
+        message:"please select the status of your todo",
+        choices:[{
+            title: "Complete",
+            value: "Completed"
+        },
+        {
+          title: "Pending",
+          value: "pending"
+        }]
+    }])
+    console.log(status.status, status.todoID)
+    if(status.status==="Completed"){
+        await prisma.todos.update(
+            {
+                where:{id: status.todoID},
+                data:{
+                    Status: "completed"
+                }
+            }
+        )
+    }
+    else{
+        await prisma.todos.update({
+            where: {id: status.todoID},
+            data: {
+                Status: "Pending"
+            }
+        })
+    }
+ })
+
+app.command("delete")
+.description("This command deletes a specific or the entire todo")
+.option("-i, --id <value>", "This is the id of todo you want to delete")
+.action(async(options)=>{
+    const id = options.id
+
+try{
+    if(id){
+    await prisma.todos.delete({
+        where: {id}
+    })
+}
+else{
+    console.log(chalk.bgRed("Caution !!! You are about to delete all the todos"))
+    const choice = await prompts({
+        type: "select",
+        name: "choice",
+        message: "please select to continue",
+        choices:
+               [
+                {
+                    title: 'Yes', value: 'yes'
+        
+                },
+                {
+                    title: 'No', value: 'No'
+        
+                }
+               ]
+        
+    })
+
+    if(choice.choice === 'yes'){
+await prisma.todos.deleteMany()
+console.log(chalk.green("succesfully deleted all todos"))
+    }
+ 
+}
+
+}
+catch(e){
+    console.log(chalk.bgYellow("You have an error"))
+}
+
+})
+
+app.parseAsync()

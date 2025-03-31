@@ -18,6 +18,7 @@ model Todos{
   id String @id
   TodoTittle String 
   TodoDescription String
+  Status String @default("todo")
 
   @@map("todo")
 }
